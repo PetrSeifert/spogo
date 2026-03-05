@@ -30,7 +30,7 @@ func TestSpotifyMockAllMethods(t *testing.T) {
 		DevicesFn:         func(context.Context) ([]spotify.Device, error) { return nil, nil },
 		TransferFn:        func(context.Context, string) error { return nil },
 		QueueAddFn:        func(context.Context, string) error { return nil },
-		QueueFn:           func(context.Context) (spotify.Queue, error) { return spotify.Queue{}, nil },
+		QueueFn:           func(context.Context, int) (spotify.Queue, error) { return spotify.Queue{}, nil },
 		LibraryTracksFn:   func(context.Context, int, int) ([]spotify.Item, int, error) { return nil, 0, nil },
 		LibraryAlbumsFn:   func(context.Context, int, int) ([]spotify.Item, int, error) { return nil, 0, nil },
 		LibraryModifyFn:   func(context.Context, string, []string, string) error { return nil },
@@ -61,7 +61,7 @@ func TestSpotifyMockAllMethods(t *testing.T) {
 	_, _ = m.Devices(context.Background())
 	_ = m.Transfer(context.Background(), "id")
 	_ = m.QueueAdd(context.Background(), "uri")
-	_, _ = m.Queue(context.Background())
+	_, _ = m.Queue(context.Background(), 0)
 	_, _, _ = m.LibraryTracks(context.Background(), 1, 0)
 	_, _, _ = m.LibraryAlbums(context.Background(), 1, 0)
 	_ = m.LibraryModify(context.Background(), "/me/tracks", []string{"1"}, "PUT")
@@ -88,7 +88,7 @@ func TestSpotifyMockNotImplemented(t *testing.T) {
 	if err := m.Pause(context.Background()); err == nil {
 		t.Fatalf("expected error")
 	}
-	if _, err := m.Queue(context.Background()); err == nil {
+	if _, err := m.Queue(context.Background(), 0); err == nil {
 		t.Fatalf("expected error")
 	}
 }

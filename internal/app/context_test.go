@@ -276,7 +276,7 @@ func (dummySpotify) Repeat(context.Context, string) error              { return 
 func (dummySpotify) Devices(context.Context) ([]spotify.Device, error) { return nil, nil }
 func (dummySpotify) Transfer(context.Context, string) error            { return nil }
 func (dummySpotify) QueueAdd(context.Context, string) error            { return nil }
-func (dummySpotify) Queue(context.Context) (spotify.Queue, error)      { return spotify.Queue{}, nil }
+func (dummySpotify) Queue(context.Context, int) (spotify.Queue, error) { return spotify.Queue{}, nil }
 func (dummySpotify) LibraryTracks(context.Context, int, int) ([]spotify.Item, int, error) {
 	return nil, 0, nil
 }

@@ -26,7 +26,7 @@ func TestSpotifyMockAllNotImplemented(t *testing.T) {
 	_, _ = m.Devices(context.Background())
 	_ = m.Transfer(context.Background(), "id")
 	_ = m.QueueAdd(context.Background(), "uri")
-	_, _ = m.Queue(context.Background())
+	_, _ = m.Queue(context.Background(), 0)
 	_, _, _ = m.LibraryTracks(context.Background(), 1, 0)
 	_, _, _ = m.LibraryAlbums(context.Background(), 1, 0)
 	_ = m.LibraryModify(context.Background(), "/me/tracks", []string{"1"}, "PUT")

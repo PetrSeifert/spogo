@@ -13,7 +13,7 @@ import (
 func TestQueueShowCmd(t *testing.T) {
 	ctx, out, _ := testutil.NewTestContext(t, output.FormatPlain)
 	mock := &testutil.SpotifyMock{
-		QueueFn: func(ctx context.Context) (spotify.Queue, error) {
+		QueueFn: func(ctx context.Context, limit int) (spotify.Queue, error) {
 			return spotify.Queue{Queue: []spotify.Item{{ID: "t1", Name: "Song", Type: "track"}}}, nil
 		},
 	}
@@ -30,7 +30,7 @@ func TestQueueShowCmd(t *testing.T) {
 func TestQueueShowWithCurrent(t *testing.T) {
 	ctx, _, _ := testutil.NewTestContext(t, output.FormatHuman)
 	mock := &testutil.SpotifyMock{
-		QueueFn: func(ctx context.Context) (spotify.Queue, error) {
+		QueueFn: func(ctx context.Context, limit int) (spotify.Queue, error) {
 			item := spotify.Item{ID: "t1", Name: "Song", Type: "track"}
 			return spotify.Queue{CurrentlyPlaying: &item, Queue: []spotify.Item{}}, nil
 		},

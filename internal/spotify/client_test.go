@@ -157,7 +157,7 @@ func TestQueueNoContent(t *testing.T) {
 	})
 	client, closeFn := newTestClient(t, handler)
 	defer closeFn()
-	queue, err := client.Queue(context.Background())
+	queue, err := client.Queue(context.Background(), 0)
 	if err != nil {
 		t.Fatalf("queue: %v", err)
 	}
@@ -172,7 +172,7 @@ func TestQueueWithCurrent(t *testing.T) {
 	})
 	client, closeFn := newTestClient(t, handler)
 	defer closeFn()
-	queue, err := client.Queue(context.Background())
+	queue, err := client.Queue(context.Background(), 0)
 	if err != nil {
 		t.Fatalf("queue: %v", err)
 	}

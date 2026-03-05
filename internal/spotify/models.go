@@ -121,6 +121,10 @@ type queueResponse struct {
 	Queue            []trackItem `json:"queue"`
 }
 
+type tracksResponse struct {
+	Tracks []trackItem `json:"tracks"`
+}
+
 type libraryResponse struct {
 	Items []struct {
 		Track trackItem `json:"track"`

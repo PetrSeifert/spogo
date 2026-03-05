@@ -156,7 +156,7 @@ func TestClientEndpoints(t *testing.T) {
 	if err := client.QueueAdd(context.Background(), "spotify:track:t1"); err != nil {
 		t.Fatalf("queue add: %v", err)
 	}
-	if _, err := client.Queue(context.Background()); err != nil {
+	if _, err := client.Queue(context.Background(), 0); err != nil {
 		t.Fatalf("queue: %v", err)
 	}
 	if _, _, err := client.LibraryTracks(context.Background(), 1, 0); err != nil {

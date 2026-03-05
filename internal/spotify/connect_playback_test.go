@@ -94,7 +94,7 @@ func TestConnectPlaybackCommands(t *testing.T) {
 	if err := client.QueueAdd(context.Background(), "spotify:track:abc"); err != nil {
 		t.Fatalf("queue add: %v", err)
 	}
-	if _, err := client.Queue(context.Background()); err != nil {
+	if _, err := client.Queue(context.Background(), 0); err != nil {
 		t.Fatalf("queue: %v", err)
 	}
 	if err := client.Transfer(context.Background(), "device-1"); err != nil {
@@ -247,7 +247,7 @@ func TestConnectPlaybackErrorPaths(t *testing.T) {
 	if err := client.QueueAdd(context.Background(), "spotify:track:abc"); err == nil {
 		t.Fatalf("expected error")
 	}
-	if _, err := client.Queue(context.Background()); err == nil {
+	if _, err := client.Queue(context.Background(), 0); err == nil {
 		t.Fatalf("expected error")
 	}
 	if err := client.Transfer(context.Background(), "device-1"); err == nil {

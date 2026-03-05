@@ -140,10 +140,68 @@ func (c *ConnectClient) queueAdd(ctx context.Context, uri string) error {
 	})
 }
 
-func (c *ConnectClient) queue(ctx context.Context) (Queue, error) {
+func (c *ConnectClient) queue(ctx context.Context, limit int) (Queue, error) {
 	return withConnectState(ctx, c, func(state connectState) (Queue, error) {
-		return mapQueue(state), nil
+		debugDumpQueue(state.raw)
+		queue := mapQueue(state)
+		if limit > 0 && len(queue.Queue) > limit {
+			queue.Queue = queue.Queue[:limit]
+		}
+		debugEnrichError(c.enrichQueueNames(ctx, queue.Queue))
+		return queue, nil
 	})
+}
+
+func (c *ConnectClient) enrichQueueNames(ctx context.Context, items []Item) error {
+	type slot struct {
+		idx int
+		id  string
+	}
+	slots := make([]slot, 0, len(items))
+	for i, item := range items {
+		if item.Name == "" && item.Type == "track" && item.ID != "" {
+			slots = append(slots, slot{idx: i, id: item.ID})
+		}
+	}
+	if len(slots) == 0 {
+		return nil
+	}
+
+	type result struct {
+		idx  int
+		item Item
+		err  error
+	}
+	results := make(chan result, len(slots))
+
+	const maxConcurrent = 5
+	sem := make(chan struct{}, maxConcurrent)
+
+	for _, current := range slots {
+		current := current
+		sem <- struct{}{}
+		go func() {
+			defer func() { <-sem }()
+			track, err := c.trackInfo(ctx, current.id)
+			results <- result{idx: current.idx, item: track, err: err}
+		}()
+	}
+
+	var firstErr error
+	for range slots {
+		result := <-results
+		if result.err != nil {
+			if firstErr == nil {
+				firstErr = result.err
+			}
+			continue
+		}
+		items[result.idx].Name = result.item.Name
+		items[result.idx].Artists = result.item.Artists
+		items[result.idx].Album = result.item.Album
+		items[result.idx].DurationMS = result.item.DurationMS
+	}
+	return firstErr
 }
 
 func (c *ConnectClient) sendStateCommand(ctx context.Context, endpoint string, payload map[string]any) error {

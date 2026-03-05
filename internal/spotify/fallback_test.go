@@ -132,7 +132,7 @@ func (a apiStub) QueueAdd(context.Context, string) error {
 	return nil
 }
 
-func (a apiStub) Queue(context.Context) (Queue, error) {
+func (a apiStub) Queue(context.Context, int) (Queue, error) {
 	a.note("Queue")
 	return Queue{}, nil
 }
@@ -384,7 +384,7 @@ func TestFallbackDelegatesToWeb(t *testing.T) {
 	if err := client.QueueAdd(ctx, "spotify:track:t1"); err != nil {
 		t.Fatalf("queue add: %v", err)
 	}
-	if _, err := client.Queue(ctx); err != nil {
+	if _, err := client.Queue(ctx, 0); err != nil {
 		t.Fatalf("queue: %v", err)
 	}
 	if _, _, err := client.LibraryTracks(ctx, 1, 0); err != nil {

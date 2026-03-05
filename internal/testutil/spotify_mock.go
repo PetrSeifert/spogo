@@ -30,7 +30,7 @@ type SpotifyMock struct {
 	DevicesFn         func(context.Context) ([]spotify.Device, error)
 	TransferFn        func(context.Context, string) error
 	QueueAddFn        func(context.Context, string) error
-	QueueFn           func(context.Context) (spotify.Queue, error)
+	QueueFn           func(context.Context, int) (spotify.Queue, error)
 	LibraryTracksFn   func(context.Context, int, int) ([]spotify.Item, int, error)
 	LibraryAlbumsFn   func(context.Context, int, int) ([]spotify.Item, int, error)
 	LibraryModifyFn   func(context.Context, string, []string, string) error

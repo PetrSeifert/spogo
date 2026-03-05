@@ -186,7 +186,7 @@ func TestAutoPassThrough(t *testing.T) {
 	_, _ = client.Devices(ctx)
 	_ = client.Transfer(ctx, "device")
 	_ = client.QueueAdd(ctx, "spotify:track:1")
-	_, _ = client.Queue(ctx)
+	_, _ = client.Queue(ctx, 0)
 	_, _, _ = client.LibraryTracks(ctx, 1, 0)
 	_, _, _ = client.LibraryAlbums(ctx, 1, 0)
 	_ = client.LibraryModify(ctx, "me/tracks", []string{"1"}, "put")

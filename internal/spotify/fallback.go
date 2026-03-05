@@ -169,9 +169,9 @@ func (c *fallbackClient) QueueAdd(ctx context.Context, uri string) error {
 	})
 }
 
-func (c *fallbackClient) Queue(ctx context.Context) (Queue, error) {
+func (c *fallbackClient) Queue(ctx context.Context, limit int) (Queue, error) {
 	return fallbackCall(c, true, func(api API) (Queue, error) {
-		return api.Queue(ctx)
+		return api.Queue(ctx, limit)
 	})
 }
 

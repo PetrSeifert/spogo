@@ -90,9 +90,9 @@ func (m *SpotifyMock) QueueAdd(ctx context.Context, uri string) error {
 	return m.QueueAddFn(ctx, uri)
 }
 
-func (m *SpotifyMock) Queue(ctx context.Context) (spotify.Queue, error) {
+func (m *SpotifyMock) Queue(ctx context.Context, limit int) (spotify.Queue, error) {
 	if m.QueueFn == nil {
 		return spotify.Queue{}, ErrNotImplemented
 	}
-	return m.QueueFn(ctx)
+	return m.QueueFn(ctx, limit)
 }
