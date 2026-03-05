@@ -303,3 +303,27 @@ func TestHelperNilAndOwnerFallback(t *testing.T) {
 		t.Fatalf("unexpected items: %#v", items)
 	}
 }
+
+func TestExtractItemConnectStateMetadataFallbacks(t *testing.T) {
+	raw := map[string]any{
+		"uri":  "spotify:track:abc",
+		"name": "Song",
+		"metadata": map[string]any{
+			"artist_name": "Artist One, Artist Two",
+			"album_title": "Album",
+		},
+		"duration": map[string]any{
+			"totalMilliseconds": "1234",
+		},
+	}
+	item, ok := extractItem(raw, "track")
+	if !ok {
+		t.Fatalf("expected item")
+	}
+	if item.Album != "Album" || item.DurationMS != 1234 {
+		t.Fatalf("unexpected item fields: %#v", item)
+	}
+	if len(item.Artists) != 2 || item.Artists[0] != "Artist One" || item.Artists[1] != "Artist Two" {
+		t.Fatalf("unexpected artists: %#v", item.Artists)
+	}
+}

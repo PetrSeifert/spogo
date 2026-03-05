@@ -77,6 +77,11 @@ func extractItem(value any, kind string) (Item, bool) {
 	if item.DurationMS == 0 {
 		item.DurationMS = getInt(m, "durationMs")
 	}
+	if item.DurationMS == 0 {
+		if duration, ok := m["duration"].(map[string]any); ok {
+			item.DurationMS = getInt(duration, "totalMilliseconds")
+		}
+	}
 	item.Owner = extractOwnerName(m)
 	item.TotalTracks = getInt(m, "totalTracks")
 	if item.TotalTracks == 0 {

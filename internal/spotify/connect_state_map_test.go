@@ -83,3 +83,34 @@ func TestExtractPlaybackTrackCurrent(t *testing.T) {
 		t.Fatalf("unexpected item: %#v", item)
 	}
 }
+
+func TestMapPlaybackStatusOptionsAndElapsedProgress(t *testing.T) {
+	state := connectState{
+		raw: map[string]any{
+			"server_timestamp_ms": "2000",
+		},
+		playerState: map[string]any{
+			"is_paused":                false,
+			"position_as_of_timestamp": "100",
+			"timestamp":                "1500",
+			"options": map[string]any{
+				"shuffling_context": true,
+				"repeating_track":   true,
+			},
+			"track": map[string]any{
+				"uri":  "spotify:track:abc",
+				"name": "Song",
+			},
+		},
+	}
+	status := mapPlaybackStatus(state)
+	if !status.IsPlaying {
+		t.Fatalf("expected playing")
+	}
+	if status.ProgressMS != 600 {
+		t.Fatalf("unexpected progress: %d", status.ProgressMS)
+	}
+	if !status.Shuffle || status.Repeat != "track" {
+		t.Fatalf("unexpected options: %#v", status)
+	}
+}

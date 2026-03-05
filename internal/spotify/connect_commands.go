@@ -9,7 +9,19 @@ import (
 
 func (c *ConnectClient) playback(ctx context.Context) (PlaybackStatus, error) {
 	return withConnectState(ctx, c, func(state connectState) (PlaybackStatus, error) {
-		return mapPlaybackStatus(state), nil
+		status := mapPlaybackStatus(state)
+		if status.Item != nil && status.Item.Type == "track" && status.Item.ID != "" {
+			if track, err := c.trackInfo(ctx, status.Item.ID); err == nil {
+				status.Item.Artists = track.Artists
+				if status.Item.Album == "" {
+					status.Item.Album = track.Album
+				}
+				if status.Item.DurationMS == 0 {
+					status.Item.DurationMS = track.DurationMS
+				}
+			}
+		}
+		return status, nil
 	})
 }
 

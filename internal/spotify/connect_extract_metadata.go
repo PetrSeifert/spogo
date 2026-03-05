@@ -8,41 +8,16 @@ func extractArtistNames(value any) []string {
 	if !ok {
 		return nil
 	}
-	if list, ok := m["artists"].([]any); ok {
-		appendArtistNames(&artists, list)
-	}
-	if group, ok := m["artists"].(map[string]any); ok {
-		if list, ok := group["items"].([]any); ok {
-			appendArtistNames(&artists, list)
-		}
-		if list, ok := group["nodes"].([]any); ok {
-			appendArtistNames(&artists, list)
-		}
-		if list, ok := group["edges"].([]any); ok {
-			appendArtistNames(&artists, list)
-		}
-	}
-	if group, ok := m["firstArtist"].(map[string]any); ok {
-		if list, ok := group["items"].([]any); ok {
-			appendArtistNames(&artists, list)
-		}
-		if list, ok := group["nodes"].([]any); ok {
-			appendArtistNames(&artists, list)
-		}
-		if list, ok := group["edges"].([]any); ok {
-			appendArtistNames(&artists, list)
-		}
-	}
-	if group, ok := m["otherArtists"].(map[string]any); ok {
-		if list, ok := group["items"].([]any); ok {
-			appendArtistNames(&artists, list)
-		}
-		if list, ok := group["nodes"].([]any); ok {
-			appendArtistNames(&artists, list)
-		}
-		if list, ok := group["edges"].([]any); ok {
-			appendArtistNames(&artists, list)
-		}
+	appendArtistFields(&artists, m)
+	if len(artists) == 0 {
+		walkMap(value, func(entry map[string]any) {
+			appendArtistFields(&artists, entry)
+			if name := getString(entry, "artist_name"); name != "" {
+				for _, artist := range strings.Split(name, ", ") {
+					artists = append(artists, strings.TrimSpace(artist))
+				}
+			}
+		})
 	}
 	if len(artists) == 0 {
 		if name := getString(m, "artistName"); name != "" {
@@ -50,6 +25,31 @@ func extractArtistNames(value any) []string {
 		}
 	}
 	return dedupeStrings(artists)
+}
+
+func appendArtistFields(artists *[]string, m map[string]any) {
+	if list, ok := m["artists"].([]any); ok {
+		appendArtistNames(artists, list)
+	}
+	for _, key := range []string{"artists", "firstArtist", "otherArtists"} {
+		group, ok := m[key].(map[string]any)
+		if !ok {
+			continue
+		}
+		appendArtistGroup(artists, group)
+	}
+}
+
+func appendArtistGroup(artists *[]string, group map[string]any) {
+	if list, ok := group["items"].([]any); ok {
+		appendArtistNames(artists, list)
+	}
+	if list, ok := group["nodes"].([]any); ok {
+		appendArtistNames(artists, list)
+	}
+	if list, ok := group["edges"].([]any); ok {
+		appendArtistNames(artists, list)
+	}
 }
 
 func appendArtistNames(artists *[]string, entries []any) {
@@ -118,6 +118,9 @@ func extractAlbumName(value any) string {
 			if name := getString(inner, "name"); name != "" {
 				album = name
 			}
+		}
+		if name := getString(m, "album_title"); name != "" {
+			album = name
 		}
 	})
 	return album
