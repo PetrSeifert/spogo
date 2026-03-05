@@ -173,9 +173,9 @@ func (c *AppleScriptClient) QueueAdd(ctx context.Context, uri string) error {
 	return ErrUnsupported
 }
 
-func (c *AppleScriptClient) Queue(ctx context.Context) (Queue, error) {
+func (c *AppleScriptClient) Queue(ctx context.Context, limit int) (Queue, error) {
 	if c.fallback != nil {
-		return c.fallback.Queue(ctx)
+		return c.fallback.Queue(ctx, limit)
 	}
 	return Queue{}, ErrUnsupported
 }

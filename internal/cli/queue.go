@@ -19,7 +19,9 @@ type QueueAddCmd struct {
 	Item string `arg:"" required:"" help:"Track URI/URL/ID."`
 }
 
-type QueueShowCmd struct{}
+type QueueShowCmd struct {
+	Limit int `help:"Maximum number of tracks to show from the queue." short:"n" default:"0"`
+}
 
 type QueueClearCmd struct{}
 
@@ -46,9 +48,12 @@ func (cmd *QueueShowCmd) Run(ctx *app.Context) error {
 	if err != nil {
 		return err
 	}
-	queue, err := client.Queue(context.Background())
+	queue, err := client.Queue(context.Background(), cmd.Limit)
 	if err != nil {
 		return err
+	}
+	if cmd.Limit > 0 && len(queue.Queue) > cmd.Limit {
+		queue.Queue = queue.Queue[:cmd.Limit]
 	}
 	plain, human := renderItems(ctx.Output, queue.Queue)
 	if queue.CurrentlyPlaying != nil {

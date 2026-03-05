@@ -133,8 +133,8 @@ func (c *ConnectClient) QueueAdd(ctx context.Context, uri string) error {
 	return c.queueAdd(ctx, uri)
 }
 
-func (c *ConnectClient) Queue(ctx context.Context) (Queue, error) {
-	return c.queue(ctx)
+func (c *ConnectClient) Queue(ctx context.Context, limit int) (Queue, error) {
+	return c.queue(ctx, limit)
 }
 
 func (c *ConnectClient) LibraryTracks(ctx context.Context, limit, offset int) ([]Item, int, error) {

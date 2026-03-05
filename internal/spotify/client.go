@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"net/http"
 	"net/url"
+	"strings"
 	"sync"
 	"time"
 )
@@ -95,6 +96,20 @@ func (c *Client) GetTrack(ctx context.Context, id string) (Item, error) {
 		return Item{}, err
 	}
 	return mapTrack(raw), nil
+}
+
+// GetTracks fetches up to 50 tracks in a single request.
+func (c *Client) GetTracks(ctx context.Context, ids []string) ([]Item, error) {
+	params := url.Values{"ids": {strings.Join(ids, ",")}}
+	var raw tracksResponse
+	if err := c.get(ctx, "/tracks", params, &raw); err != nil {
+		return nil, err
+	}
+	items := make([]Item, 0, len(raw.Tracks))
+	for _, t := range raw.Tracks {
+		items = append(items, mapTrack(t))
+	}
+	return items, nil
 }
 
 func (c *Client) GetAlbum(ctx context.Context, id string) (Item, error) {
@@ -251,7 +266,7 @@ func (c *Client) QueueAdd(ctx context.Context, uri string) error {
 	return c.postParams(ctx, "/me/player/queue", params)
 }
 
-func (c *Client) Queue(ctx context.Context) (Queue, error) {
+func (c *Client) Queue(ctx context.Context, _ int) (Queue, error) {
 	var raw queueResponse
 	if err := c.get(ctx, "/me/player/queue", nil, &raw); err != nil {
 		if errors.Is(err, ErrNoContent) {

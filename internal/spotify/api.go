@@ -22,7 +22,7 @@ type API interface {
 	Devices(ctx context.Context) ([]Device, error)
 	Transfer(ctx context.Context, deviceID string) error
 	QueueAdd(ctx context.Context, uri string) error
-	Queue(ctx context.Context) (Queue, error)
+	Queue(ctx context.Context, limit int) (Queue, error)
 	LibraryTracks(ctx context.Context, limit, offset int) ([]Item, int, error)
 	LibraryAlbums(ctx context.Context, limit, offset int) ([]Item, int, error)
 	LibraryModify(ctx context.Context, path string, ids []string, method string) error

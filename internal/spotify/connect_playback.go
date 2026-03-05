@@ -229,12 +229,73 @@ func (c *ConnectClient) queueAdd(ctx context.Context, uri string) error {
 	return c.sendPlayerCommand(ctx, state, "add_to_queue", payload)
 }
 
-func (c *ConnectClient) queue(ctx context.Context) (Queue, error) {
+func (c *ConnectClient) queue(ctx context.Context, limit int) (Queue, error) {
 	state, err := c.connectState(ctx)
 	if err != nil {
 		return Queue{}, err
 	}
-	return mapQueue(state), nil
+	debugDumpQueue(state.raw)
+	queue := mapQueue(state)
+	items := queue.Queue
+	if limit > 0 && len(items) > limit {
+		items = items[:limit]
+	}
+	debugEnrichError(c.enrichQueueNames(ctx, items))
+	return queue, nil
+}
+
+// enrichQueueNames fetches track metadata for queue items that have no name
+// using the internal Pathfinder GraphQL endpoint (same as the web app).
+func (c *ConnectClient) enrichQueueNames(ctx context.Context, items []Item) error {
+	type slot struct {
+		idx int
+		id  string
+	}
+	var slots []slot
+	for i, item := range items {
+		if item.Name == "" && item.ID != "" {
+			slots = append(slots, slot{i, item.ID})
+		}
+	}
+	if len(slots) == 0 {
+		return nil
+	}
+
+	type result struct {
+		idx  int
+		item Item
+		err  error
+	}
+	results := make(chan result, len(slots))
+
+	const maxConcurrent = 5
+	sem := make(chan struct{}, maxConcurrent)
+
+	for _, s := range slots {
+		s := s
+		sem <- struct{}{}
+		go func() {
+			defer func() { <-sem }()
+			track, err := c.trackInfo(ctx, s.id)
+			results <- result{idx: s.idx, item: track, err: err}
+		}()
+	}
+
+	var firstErr error
+	for range slots {
+		r := <-results
+		if r.err != nil {
+			if firstErr == nil {
+				firstErr = r.err
+			}
+			continue
+		}
+		items[r.idx].Name = r.item.Name
+		items[r.idx].Artists = r.item.Artists
+		items[r.idx].Album = r.item.Album
+		items[r.idx].DurationMS = r.item.DurationMS
+	}
+	return firstErr
 }
 
 type connectState struct {

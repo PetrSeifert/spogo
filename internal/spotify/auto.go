@@ -182,9 +182,9 @@ func (c *autoClient) QueueAdd(ctx context.Context, uri string) error {
 	})
 }
 
-func (c *autoClient) Queue(ctx context.Context) (Queue, error) {
+func (c *autoClient) Queue(ctx context.Context, limit int) (Queue, error) {
 	return autoCall(c, func(api API) (Queue, error) {
-		return api.Queue(ctx)
+		return api.Queue(ctx, limit)
 	})
 }
 
