@@ -127,6 +127,17 @@ func (c *Client) send(ctx context.Context, method, path string, params url.Value
 		if resp.ContentLength == 0 {
 			return nil
 		}
+		if path == "/me/player" {
+			data, err := io.ReadAll(resp.Body)
+			if err != nil {
+				return err
+			}
+			if len(bytes.TrimSpace(data)) == 0 {
+				return nil
+			}
+			debugDumpStatusRaw(data)
+			return json.Unmarshal(data, dest)
+		}
 		return json.NewDecoder(resp.Body).Decode(dest)
 	}
 	return errors.New("spotify api error (429): rate limit retry exhausted")
