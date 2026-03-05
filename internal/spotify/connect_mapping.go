@@ -2,6 +2,7 @@ package spotify
 
 import (
 	"fmt"
+	"strconv"
 	"strings"
 )
 
@@ -139,6 +140,12 @@ func extractItem(value any, kind string) (Item, bool) {
 	if item.DurationMS == 0 {
 		item.DurationMS = getInt(m, "durationMs")
 	}
+	// Pathfinder: duration is an object with totalMilliseconds.
+	if item.DurationMS == 0 {
+		if dur, ok := m["duration"].(map[string]any); ok {
+			item.DurationMS = getInt(dur, "totalMilliseconds")
+		}
+	}
 	item.Owner = extractOwnerName(m)
 	item.TotalTracks = getInt(m, "totalTracks")
 	if item.TotalTracks == 0 {
@@ -217,23 +224,70 @@ func findFirstName(value any) string {
 
 func extractArtistNames(value any) []string {
 	artists := []string{}
-	walkMap(value, func(m map[string]any) {
-		if list, ok := m["artists"].([]any); ok {
-			for _, entry := range list {
-				if name := findFirstName(entry); name != "" {
-					artists = append(artists, name)
+	m, isMap := value.(map[string]any)
+	// Pathfinder format: firstArtist/otherArtists/artists as object with items array.
+	if isMap {
+		for _, key := range []string{"firstArtist", "otherArtists", "artists"} {
+			artists = append(artists, extractArtistItemNames(m[key])...)
+		}
+	}
+	if len(artists) == 0 {
+		walkMap(value, func(m map[string]any) {
+			if list, ok := m["artists"].([]any); ok {
+				for _, entry := range list {
+					if name := findFirstName(entry); name != "" {
+						artists = append(artists, name)
+					}
 				}
 			}
-		}
-	})
-	if len(artists) == 0 {
-		if m, ok := value.(map[string]any); ok {
-			if name := getString(m, "artistName"); name != "" {
-				artists = append(artists, name)
+			artists = append(artists, extractArtistItemNames(m["artists"])...)
+			// Connect State metadata uses flat "artist_name" string.
+			if name := getString(m, "artist_name"); name != "" {
+				for _, a := range strings.Split(name, ", ") {
+					a = strings.TrimSpace(a)
+					if a != "" {
+						artists = append(artists, a)
+					}
+				}
 			}
+		})
+	}
+	if len(artists) == 0 && isMap {
+		if name := getString(m, "artistName"); name != "" {
+			artists = append(artists, name)
 		}
 	}
 	return dedupeStrings(artists)
+}
+
+// extractArtistItemNames handles the Pathfinder format where an artist
+// field is an object with an "items" array of {profile: {name: "..."}} entries.
+func extractArtistItemNames(value any) []string {
+	obj, ok := value.(map[string]any)
+	if !ok {
+		return nil
+	}
+	items, ok := obj["items"].([]any)
+	if !ok {
+		return nil
+	}
+	var names []string
+	for _, entry := range items {
+		entryMap, ok := entry.(map[string]any)
+		if !ok {
+			continue
+		}
+		if profile, ok := entryMap["profile"].(map[string]any); ok {
+			if name := getString(profile, "name"); name != "" {
+				names = append(names, name)
+				continue
+			}
+		}
+		if name := findFirstName(entry); name != "" {
+			names = append(names, name)
+		}
+	}
+	return names
 }
 
 func extractAlbumName(value any) string {
@@ -251,6 +305,10 @@ func extractAlbumName(value any) string {
 			if name := getString(inner, "name"); name != "" {
 				album = name
 			}
+		}
+		// Connect State metadata uses flat "album_title" string.
+		if name := getString(m, "album_title"); name != "" {
+			album = name
 		}
 	})
 	return album
@@ -326,6 +384,29 @@ func getInt(m map[string]any, key string) int {
 		return value
 	case float64:
 		return int(value)
+	case string:
+		if v, err := strconv.Atoi(value); err == nil {
+			return v
+		}
+	}
+	return 0
+}
+
+func getInt64(m map[string]any, key string) int64 {
+	if m == nil {
+		return 0
+	}
+	switch value := m[key].(type) {
+	case int:
+		return int64(value)
+	case int64:
+		return value
+	case float64:
+		return int64(value)
+	case string:
+		if v, err := strconv.ParseInt(value, 10, 64); err == nil {
+			return v
+		}
 	}
 	return 0
 }

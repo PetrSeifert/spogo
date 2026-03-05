@@ -28,7 +28,21 @@ func (c *ConnectClient) playback(ctx context.Context) (PlaybackStatus, error) {
 	if err != nil {
 		return PlaybackStatus{}, err
 	}
-	return mapPlaybackStatus(state), nil
+	status := mapPlaybackStatus(state)
+	// Connect State metadata never includes artist names (only the artist URI);
+	// always enrich via trackInfo.
+	if status.Item != nil && status.Item.ID != "" {
+		if track, err := c.trackInfo(ctx, status.Item.ID); err == nil {
+			status.Item.Artists = track.Artists
+			if status.Item.Album == "" {
+				status.Item.Album = track.Album
+			}
+			if status.Item.DurationMS == 0 {
+				status.Item.DurationMS = track.DurationMS
+			}
+		}
+	}
+	return status, nil
 }
 
 func (c *ConnectClient) devices(ctx context.Context) ([]Device, error) {

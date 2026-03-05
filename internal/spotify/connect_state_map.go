@@ -48,10 +48,30 @@ func mapPlaybackStatus(state connectState) PlaybackStatus {
 	if status.ProgressMS == 0 {
 		status.ProgressMS = getInt(player, "position_ms")
 	}
+	// position_as_of_timestamp is a snapshot; compute elapsed time if playing.
+	if status.IsPlaying {
+		playerTS := getInt64(player, "timestamp")
+		serverTS := getInt64(state.raw, "server_timestamp_ms")
+		if playerTS > 0 && serverTS > playerTS {
+			elapsed := int(serverTS - playerTS)
+			status.ProgressMS += elapsed
+		}
+	}
 	status.Shuffle = getBool(player, "shuffle")
 	status.Repeat = getString(player, "repeat_mode")
 	if status.Repeat == "" {
 		status.Repeat = getString(player, "repeat")
+	}
+	// Connect State stores shuffle/repeat in an options sub-object.
+	if options, ok := player["options"].(map[string]any); ok {
+		status.Shuffle = getBool(options, "shuffling_context")
+		if getBool(options, "repeating_track") {
+			status.Repeat = "track"
+		} else if getBool(options, "repeating_context") {
+			status.Repeat = "context"
+		} else if status.Repeat == "" {
+			status.Repeat = "off"
+		}
 	}
 	if track := extractPlaybackTrack(player); track.URI != "" {
 		status.Item = &track
