@@ -79,6 +79,7 @@ func (c *ConnectClient) connectState(ctx context.Context) (connectState, error) 
 	if err := json.NewDecoder(resp.Body).Decode(&raw); err != nil {
 		return connectState{}, err
 	}
+	debugDumpStatus(raw)
 	state := connectState{raw: raw}
 	if devices, ok := raw["devices"].(map[string]any); ok {
 		state.devices = devices
