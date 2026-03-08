@@ -1,7 +1,6 @@
 package cli
 
 import (
-	"context"
 	"fmt"
 	"strings"
 
@@ -33,21 +32,19 @@ type PlaylistTracksCmd struct {
 }
 
 func (cmd *PlaylistCreateCmd) Run(ctx *app.Context) error {
-	client, err := ctx.Spotify()
+	client, cmdCtx, err := spotifyClient(ctx)
 	if err != nil {
 		return err
 	}
-	item, err := client.CreatePlaylist(context.Background(), cmd.Name, cmd.Public, cmd.Collab)
+	item, err := client.CreatePlaylist(cmdCtx, cmd.Name, cmd.Public, cmd.Collab)
 	if err != nil {
 		return err
 	}
-	plain := []string{itemPlain(item)}
-	human := []string{fmt.Sprintf("Created %s", itemHuman(ctx.Output, item))}
-	return ctx.Output.Emit(item, plain, human)
+	return ctx.Output.Emit(item, []string{itemPlain(item)}, []string{fmt.Sprintf("Created %s", itemHuman(ctx.Output, item))})
 }
 
 func (cmd *PlaylistAddCmd) Run(ctx *app.Context) error {
-	client, err := ctx.Spotify()
+	client, cmdCtx, err := spotifyClient(ctx)
 	if err != nil {
 		return err
 	}
@@ -59,16 +56,14 @@ func (cmd *PlaylistAddCmd) Run(ctx *app.Context) error {
 	if err != nil {
 		return err
 	}
-	if err := client.AddTracks(context.Background(), playlist.ID, uris); err != nil {
+	if err := client.AddTracks(cmdCtx, playlist.ID, uris); err != nil {
 		return err
 	}
-	plain := []string{"ok"}
-	human := []string{fmt.Sprintf("Added %d tracks", len(uris))}
-	return ctx.Output.Emit(map[string]any{"status": "ok", "count": len(uris)}, plain, human)
+	return emitCountStatus(ctx, len(uris), "Added")
 }
 
 func (cmd *PlaylistRemoveCmd) Run(ctx *app.Context) error {
-	client, err := ctx.Spotify()
+	client, cmdCtx, err := spotifyClient(ctx)
 	if err != nil {
 		return err
 	}
@@ -80,16 +75,14 @@ func (cmd *PlaylistRemoveCmd) Run(ctx *app.Context) error {
 	if err != nil {
 		return err
 	}
-	if err := client.RemoveTracks(context.Background(), playlist.ID, uris); err != nil {
+	if err := client.RemoveTracks(cmdCtx, playlist.ID, uris); err != nil {
 		return err
 	}
-	plain := []string{"ok"}
-	human := []string{fmt.Sprintf("Removed %d tracks", len(uris))}
-	return ctx.Output.Emit(map[string]any{"status": "ok", "count": len(uris)}, plain, human)
+	return emitCountStatus(ctx, len(uris), "Removed")
 }
 
 func (cmd *PlaylistTracksCmd) Run(ctx *app.Context) error {
-	client, err := ctx.Spotify()
+	client, cmdCtx, err := spotifyClient(ctx)
 	if err != nil {
 		return err
 	}
@@ -98,7 +91,7 @@ func (cmd *PlaylistTracksCmd) Run(ctx *app.Context) error {
 		return err
 	}
 	limit := clampLimit(cmd.Limit)
-	items, total, err := client.PlaylistTracks(context.Background(), playlist.ID, limit, cmd.Offset)
+	items, total, err := client.PlaylistTracks(cmdCtx, playlist.ID, limit, cmd.Offset)
 	if err != nil {
 		return err
 	}

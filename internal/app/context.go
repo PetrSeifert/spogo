@@ -1,6 +1,7 @@
 package app
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"os"
@@ -38,50 +39,21 @@ type Context struct {
 	Output     *output.Writer
 
 	spotifyClient spotify.API
+	commandCtx    context.Context
 }
 
 func NewContext(settings Settings) (*Context, error) {
-	configPath := settings.ConfigPath
+	configPath, err := resolveConfigPath(settings.ConfigPath)
+	if err != nil {
+		return nil, err
+	}
 	cfg, err := config.Load(configPath)
 	if err != nil {
 		return nil, err
 	}
-	if configPath == "" {
-		configPath, err = config.DefaultPath()
-		if err != nil {
-			return nil, err
-		}
-	}
-	profileKey := settings.Profile
-	if profileKey == "" {
-		profileKey = cfg.DefaultProfile
-	}
-	if profileKey == "" {
-		profileKey = config.DefaultProfile
-	}
-	profile := cfg.Profile(profileKey)
-	if settings.Market != "" {
-		profile.Market = settings.Market
-	}
-	if settings.Language != "" {
-		profile.Language = settings.Language
-	}
-	if settings.Device != "" {
-		profile.Device = settings.Device
-	}
-	if settings.Engine != "" {
-		profile.Engine = settings.Engine
-	}
-	format := settings.Format
-	if format == "" {
-		format = output.FormatHuman
-	}
-	colorEnabled := isColorEnabled(format, settings.NoColor)
-	writer, err := output.New(output.Options{
-		Format: format,
-		Color:  colorEnabled,
-		Quiet:  settings.Quiet,
-	})
+	profileKey := resolveProfileKey(cfg, settings.Profile)
+	profile := applySettings(cfg.Profile(profileKey), settings)
+	writer, err := newOutputWriter(settings)
 	if err != nil {
 		return nil, err
 	}
@@ -92,6 +64,7 @@ func NewContext(settings Settings) (*Context, error) {
 		Profile:    profile,
 		ProfileKey: profileKey,
 		Output:     writer,
+		commandCtx: context.Background(),
 	}, nil
 }
 
@@ -106,86 +79,41 @@ func (c *Context) Spotify() (spotify.API, error) {
 	if err != nil {
 		return nil, err
 	}
-	engine := strings.ToLower(strings.TrimSpace(c.Profile.Engine))
-	if engine == "" {
-		engine = "connect"
+	client, err := c.buildSpotifyClient(source)
+	if err != nil {
+		return nil, err
 	}
-	switch engine {
+	c.spotifyClient = client
+	return client, nil
+}
+
+func (c *Context) buildSpotifyClient(source cookies.Source) (spotify.API, error) {
+	switch c.engine() {
 	case "connect":
-		client, err := spotify.NewConnectClient(spotify.ConnectOptions{
-			Source:   source,
-			Market:   c.Profile.Market,
-			Language: c.Profile.Language,
-			Device:   c.Profile.Device,
-			Timeout:  c.Settings.Timeout,
-		})
-		if err != nil {
-			return nil, err
-		}
-		c.spotifyClient = client
-		return client, nil
+		return c.newConnectClient(source)
 	case "web":
-		provider := spotify.CookieTokenProvider{
-			Source: source,
-		}
-		webClient, err := spotify.NewClient(spotify.Options{
-			TokenProvider: provider,
-			Market:        c.Profile.Market,
-			Language:      c.Profile.Language,
-			Device:        c.Profile.Device,
-			Timeout:       c.Settings.Timeout,
-		})
+		webClient, err := c.newWebClient(source)
 		if err != nil {
 			return nil, err
 		}
 		client := spotify.API(webClient)
-		if connectClient, connectErr := spotify.NewConnectClient(spotify.ConnectOptions{
-			Source:   source,
-			Market:   c.Profile.Market,
-			Language: c.Profile.Language,
-			Device:   c.Profile.Device,
-			Timeout:  c.Settings.Timeout,
-		}); connectErr == nil {
+		if connectClient, connectErr := c.newConnectClient(source); connectErr == nil {
 			client = spotify.NewPlaybackFallbackClient(webClient, connectClient)
 		}
-		c.spotifyClient = client
 		return client, nil
 	case "auto":
-		webClient, err := spotify.NewClient(spotify.Options{
-			TokenProvider: spotify.CookieTokenProvider{
-				Source: source,
-			},
-			Market:   c.Profile.Market,
-			Language: c.Profile.Language,
-			Device:   c.Profile.Device,
-			Timeout:  c.Settings.Timeout,
-		})
+		webClient, err := c.newWebClient(source)
 		if err != nil {
 			return nil, err
 		}
 		client := spotify.API(webClient)
-		if connectClient, connectErr := spotify.NewConnectClient(spotify.ConnectOptions{
-			Source:   source,
-			Market:   c.Profile.Market,
-			Language: c.Profile.Language,
-			Device:   c.Profile.Device,
-			Timeout:  c.Settings.Timeout,
-		}); connectErr == nil {
+		if connectClient, connectErr := c.newConnectClient(source); connectErr == nil {
 			client = spotify.NewAutoClient(connectClient, webClient)
 		}
-		c.spotifyClient = client
 		return client, nil
 	case "applescript":
 		var fallback spotify.API
-		if webClient, webErr := spotify.NewClient(spotify.Options{
-			TokenProvider: spotify.CookieTokenProvider{
-				Source: source,
-			},
-			Market:   c.Profile.Market,
-			Language: c.Profile.Language,
-			Device:   c.Profile.Device,
-			Timeout:  c.Settings.Timeout,
-		}); webErr == nil {
+		if webClient, webErr := c.newWebClient(source); webErr == nil {
 			fallback = webClient
 		}
 		client, err := spotify.NewAppleScriptClient(spotify.AppleScriptOptions{
@@ -194,11 +122,38 @@ func (c *Context) Spotify() (spotify.API, error) {
 		if err != nil {
 			return nil, err
 		}
-		c.spotifyClient = client
 		return client, nil
 	default:
-		return nil, fmt.Errorf("unknown engine %q (use auto, web, connect, or applescript)", engine)
+		return nil, fmt.Errorf("unknown engine %q (use auto, web, connect, or applescript)", c.engine())
 	}
+}
+
+func (c *Context) newConnectClient(source cookies.Source) (*spotify.ConnectClient, error) {
+	return spotify.NewConnectClient(spotify.ConnectOptions{
+		Source:   source,
+		Market:   c.Profile.Market,
+		Language: c.Profile.Language,
+		Device:   c.Profile.Device,
+		Timeout:  c.Settings.Timeout,
+	})
+}
+
+func (c *Context) newWebClient(source cookies.Source) (*spotify.Client, error) {
+	return spotify.NewClient(spotify.Options{
+		TokenProvider: spotify.CookieTokenProvider{Source: source},
+		Market:        c.Profile.Market,
+		Language:      c.Profile.Language,
+		Device:        c.Profile.Device,
+		Timeout:       c.Settings.Timeout,
+	})
+}
+
+func (c *Context) engine() string {
+	engine := strings.ToLower(strings.TrimSpace(c.Profile.Engine))
+	if engine == "" {
+		return "connect"
+	}
+	return engine
 }
 
 func (c *Context) SetSpotify(client spotify.API) {
@@ -226,6 +181,9 @@ func (c *Context) cookieSource() (cookies.Source, error) {
 func (c *Context) SaveProfile(profile config.Profile) error {
 	if c == nil {
 		return errors.New("nil context")
+	}
+	if c.Config == nil {
+		return errors.New("nil config")
 	}
 	cfg := c.Config
 	cfg.SetProfile(c.ProfileKey, profile)
@@ -265,9 +223,73 @@ func (c *Context) EnsureTimeout() time.Duration {
 	return 10 * time.Second
 }
 
+func (c *Context) CommandContext() context.Context {
+	if c == nil || c.commandCtx == nil {
+		return context.Background()
+	}
+	return c.commandCtx
+}
+
+func (c *Context) SetCommandContext(ctx context.Context) {
+	if c == nil {
+		return
+	}
+	if ctx == nil {
+		c.commandCtx = context.Background()
+		return
+	}
+	c.commandCtx = ctx
+}
+
 func (c *Context) ValidateProfile() error {
 	if c.Profile.Market != "" && len(c.Profile.Market) != 2 {
 		return fmt.Errorf("market must be 2-letter country code")
 	}
 	return nil
+}
+
+func resolveConfigPath(configPath string) (string, error) {
+	if configPath != "" {
+		return configPath, nil
+	}
+	return config.DefaultPath()
+}
+
+func resolveProfileKey(cfg *config.Config, requested string) string {
+	if requested != "" {
+		return requested
+	}
+	if cfg != nil && cfg.DefaultProfile != "" {
+		return cfg.DefaultProfile
+	}
+	return config.DefaultProfile
+}
+
+func applySettings(profile config.Profile, settings Settings) config.Profile {
+	if settings.Market != "" {
+		profile.Market = settings.Market
+	}
+	if settings.Language != "" {
+		profile.Language = settings.Language
+	}
+	if settings.Device != "" {
+		profile.Device = settings.Device
+	}
+	if settings.Engine != "" {
+		profile.Engine = settings.Engine
+	}
+	return profile
+}
+
+func newOutputWriter(settings Settings) (*output.Writer, error) {
+	format := settings.Format
+	if format == "" {
+		format = output.FormatHuman
+	}
+	colorEnabled := isColorEnabled(format, settings.NoColor)
+	return output.New(output.Options{
+		Format: format,
+		Color:  colorEnabled,
+		Quiet:  settings.Quiet,
+	})
 }

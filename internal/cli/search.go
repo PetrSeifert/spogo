@@ -1,7 +1,6 @@
 package cli
 
 import (
-	"context"
 	"fmt"
 	"strings"
 
@@ -61,7 +60,7 @@ func (cmd *SearchShowCmd) Run(ctx *app.Context) error {
 }
 
 func runSearch(ctx *app.Context, kind string, args SearchArgs) error {
-	client, err := ctx.Spotify()
+	client, cmdCtx, err := spotifyClient(ctx)
 	if err != nil {
 		return err
 	}
@@ -69,7 +68,7 @@ func runSearch(ctx *app.Context, kind string, args SearchArgs) error {
 	if args.Limit != limit {
 		ctx.Output.Errorf("limit capped at %d", limit)
 	}
-	res, err := client.Search(context.Background(), kind, args.Query, limit, args.Offset)
+	res, err := client.Search(cmdCtx, kind, args.Query, limit, args.Offset)
 	if err != nil {
 		return err
 	}

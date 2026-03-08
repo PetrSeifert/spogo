@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"io"
 	"os"
@@ -51,6 +52,7 @@ func run(args []string, out io.Writer, errOut io.Writer) int {
 		_, _ = fmt.Fprintln(errOut, err)
 		return 1
 	}
+	ctx.SetCommandContext(context.Background())
 	if err := ctx.ValidateProfile(); err != nil {
 		_, _ = fmt.Fprintln(errOut, err)
 		return 2

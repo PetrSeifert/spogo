@@ -1,7 +1,6 @@
 package cli
 
 import (
-	"context"
 	"fmt"
 	"net/http"
 	"os/exec"
@@ -83,7 +82,7 @@ func (cmd *AuthImportCmd) Run(ctx *app.Context) error {
 	if ctx.Output.Format == output.FormatHuman {
 		_ = ctx.Output.WriteLines([]string{"Reading browser cookies..."})
 	}
-	cookiesList, err := source.Cookies(context.Background())
+	cookiesList, err := source.Cookies(ctx.CommandContext())
 	if err != nil {
 		return err
 	}
@@ -143,7 +142,7 @@ func readCookies(ctx *app.Context) ([]*http.Cookie, string, error) {
 		browser = "chrome"
 	}
 	browserSource := cookies.BrowserSource{Browser: browser, Profile: ctx.Profile.BrowserProfile, Domain: "spotify.com"}
-	browserCookies, err := browserSource.Cookies(context.Background())
+	browserCookies, err := browserSource.Cookies(ctx.CommandContext())
 	if err != nil {
 		return nil, "", err
 	}

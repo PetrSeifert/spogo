@@ -46,7 +46,7 @@ type artistTopTracks interface {
 }
 
 func (cmd *PlayCmd) Run(ctx *app.Context) error {
-	client, err := ctx.Spotify()
+	client, cmdCtx, err := spotifyClient(ctx)
 	if err != nil {
 		return err
 	}
@@ -68,11 +68,11 @@ func (cmd *PlayCmd) Run(ctx *app.Context) error {
 			if !ok {
 				return errors.New("artist playback not supported by engine")
 			}
-			tracks, err := topTracks.ArtistTopTracks(context.Background(), res.ID, 10)
+			tracks, err := topTracks.ArtistTopTracks(cmdCtx, res.ID, 10)
 			if err == nil && len(tracks) > 0 {
 				uri = tracks[0].URI
 			} else {
-				artist, aerr := client.GetArtist(context.Background(), res.ID)
+				artist, aerr := client.GetArtist(cmdCtx, res.ID)
 				if aerr != nil || artist.Name == "" {
 					if err != nil {
 						return err
@@ -80,7 +80,7 @@ func (cmd *PlayCmd) Run(ctx *app.Context) error {
 					return errors.New("no artist tracks found")
 				}
 				query := fmt.Sprintf("artist:%q", artist.Name)
-				search, serr := client.Search(context.Background(), "track", query, 1, 0)
+				search, serr := client.Search(cmdCtx, "track", query, 1, 0)
 				if serr != nil {
 					if err != nil {
 						return err
@@ -99,47 +99,47 @@ func (cmd *PlayCmd) Run(ctx *app.Context) error {
 			uri = res.URI
 		}
 	}
-	if err := client.Play(context.Background(), uri); err != nil {
+	if err := client.Play(cmdCtx, uri); err != nil {
 		return err
 	}
-	return ctx.Output.Emit(map[string]string{"status": "ok"}, []string{"ok"}, []string{"Playback started"})
+	return emitOK(ctx, nil, "Playback started")
 }
 
 func (cmd *PauseCmd) Run(ctx *app.Context) error {
-	client, err := ctx.Spotify()
+	client, cmdCtx, err := spotifyClient(ctx)
 	if err != nil {
 		return err
 	}
-	if err := client.Pause(context.Background()); err != nil {
+	if err := client.Pause(cmdCtx); err != nil {
 		return err
 	}
-	return ctx.Output.Emit(map[string]string{"status": "ok"}, []string{"ok"}, []string{"Playback paused"})
+	return emitOK(ctx, nil, "Playback paused")
 }
 
 func (cmd *NextCmd) Run(ctx *app.Context) error {
-	client, err := ctx.Spotify()
+	client, cmdCtx, err := spotifyClient(ctx)
 	if err != nil {
 		return err
 	}
-	if err := client.Next(context.Background()); err != nil {
+	if err := client.Next(cmdCtx); err != nil {
 		return err
 	}
-	return ctx.Output.Emit(map[string]string{"status": "ok"}, []string{"ok"}, []string{"Skipped to next"})
+	return emitOK(ctx, nil, "Skipped to next")
 }
 
 func (cmd *PrevCmd) Run(ctx *app.Context) error {
-	client, err := ctx.Spotify()
+	client, cmdCtx, err := spotifyClient(ctx)
 	if err != nil {
 		return err
 	}
-	if err := client.Previous(context.Background()); err != nil {
+	if err := client.Previous(cmdCtx); err != nil {
 		return err
 	}
-	return ctx.Output.Emit(map[string]string{"status": "ok"}, []string{"ok"}, []string{"Skipped to previous"})
+	return emitOK(ctx, nil, "Skipped to previous")
 }
 
 func (cmd *SeekCmd) Run(ctx *app.Context) error {
-	client, err := ctx.Spotify()
+	client, cmdCtx, err := spotifyClient(ctx)
 	if err != nil {
 		return err
 	}
@@ -147,24 +147,24 @@ func (cmd *SeekCmd) Run(ctx *app.Context) error {
 	if err != nil {
 		return err
 	}
-	if err := client.Seek(context.Background(), position); err != nil {
+	if err := client.Seek(cmdCtx, position); err != nil {
 		return err
 	}
-	return ctx.Output.Emit(map[string]any{"status": "ok", "position_ms": position}, []string{"ok"}, []string{fmt.Sprintf("Seeked to %s", humanDuration(position))})
+	return emitOK(ctx, map[string]any{"status": "ok", "position_ms": position}, fmt.Sprintf("Seeked to %s", humanDuration(position)))
 }
 
 func (cmd *VolumeCmd) Run(ctx *app.Context) error {
 	if cmd.Level < 0 || cmd.Level > 100 {
 		return fmt.Errorf("volume must be 0-100")
 	}
-	client, err := ctx.Spotify()
+	client, cmdCtx, err := spotifyClient(ctx)
 	if err != nil {
 		return err
 	}
-	if err := client.Volume(context.Background(), cmd.Level); err != nil {
+	if err := client.Volume(cmdCtx, cmd.Level); err != nil {
 		return err
 	}
-	return ctx.Output.Emit(map[string]any{"status": "ok", "volume": cmd.Level}, []string{"ok"}, []string{fmt.Sprintf("Volume %d", cmd.Level)})
+	return emitOK(ctx, map[string]any{"status": "ok", "volume": cmd.Level}, fmt.Sprintf("Volume %d", cmd.Level))
 }
 
 func (cmd *ShuffleCmd) Run(ctx *app.Context) error {
@@ -172,14 +172,14 @@ func (cmd *ShuffleCmd) Run(ctx *app.Context) error {
 	if err != nil {
 		return err
 	}
-	client, err := ctx.Spotify()
+	client, cmdCtx, err := spotifyClient(ctx)
 	if err != nil {
 		return err
 	}
-	if err := client.Shuffle(context.Background(), state); err != nil {
+	if err := client.Shuffle(cmdCtx, state); err != nil {
 		return err
 	}
-	return ctx.Output.Emit(map[string]any{"status": "ok", "shuffle": state}, []string{"ok"}, []string{fmt.Sprintf("Shuffle %s", onOff(state))})
+	return emitOK(ctx, map[string]any{"status": "ok", "shuffle": state}, fmt.Sprintf("Shuffle %s", onOff(state)))
 }
 
 func (cmd *RepeatCmd) Run(ctx *app.Context) error {
@@ -187,22 +187,22 @@ func (cmd *RepeatCmd) Run(ctx *app.Context) error {
 	if mode != "off" && mode != "track" && mode != "context" {
 		return fmt.Errorf("repeat must be off|track|context")
 	}
-	client, err := ctx.Spotify()
+	client, cmdCtx, err := spotifyClient(ctx)
 	if err != nil {
 		return err
 	}
-	if err := client.Repeat(context.Background(), mode); err != nil {
+	if err := client.Repeat(cmdCtx, mode); err != nil {
 		return err
 	}
-	return ctx.Output.Emit(map[string]any{"status": "ok", "repeat": mode}, []string{"ok"}, []string{fmt.Sprintf("Repeat %s", mode)})
+	return emitOK(ctx, map[string]any{"status": "ok", "repeat": mode}, fmt.Sprintf("Repeat %s", mode))
 }
 
 func (cmd *StatusCmd) Run(ctx *app.Context) error {
-	client, err := ctx.Spotify()
+	client, cmdCtx, err := spotifyClient(ctx)
 	if err != nil {
 		return err
 	}
-	status, err := client.Playback(context.Background())
+	status, err := client.Playback(cmdCtx)
 	if err != nil {
 		return err
 	}

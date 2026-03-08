@@ -1,7 +1,6 @@
 package cli
 
 import (
-	"context"
 	"fmt"
 	"strings"
 
@@ -84,18 +83,16 @@ type LibraryPlaylistsListCmd struct {
 }
 
 func (cmd *LibraryTracksListCmd) Run(ctx *app.Context) error {
-	client, err := ctx.Spotify()
+	client, cmdCtx, err := spotifyClient(ctx)
 	if err != nil {
 		return err
 	}
 	limit := clampLimit(cmd.Limit)
-	items, total, err := client.LibraryTracks(context.Background(), limit, cmd.Offset)
+	items, total, err := client.LibraryTracks(cmdCtx, limit, cmd.Offset)
 	if err != nil {
 		return err
 	}
-	plain, human := renderItems(ctx.Output, items)
-	payload := map[string]any{"total": total, "items": items}
-	return ctx.Output.Emit(payload, plain, human)
+	return emitItems(ctx, items, total, nil)
 }
 
 func (cmd *LibraryTracksAddCmd) Run(ctx *app.Context) error {
@@ -103,14 +100,14 @@ func (cmd *LibraryTracksAddCmd) Run(ctx *app.Context) error {
 	if err != nil {
 		return err
 	}
-	client, err := ctx.Spotify()
+	client, cmdCtx, err := spotifyClient(ctx)
 	if err != nil {
 		return err
 	}
-	if err := client.LibraryModify(context.Background(), "/me/tracks", ids, "PUT"); err != nil {
+	if err := client.LibraryModify(cmdCtx, "/me/tracks", ids, "PUT"); err != nil {
 		return err
 	}
-	return ok(ctx, len(ids))
+	return emitCountStatus(ctx, len(ids), "Updated")
 }
 
 func (cmd *LibraryTracksRemoveCmd) Run(ctx *app.Context) error {
@@ -118,29 +115,27 @@ func (cmd *LibraryTracksRemoveCmd) Run(ctx *app.Context) error {
 	if err != nil {
 		return err
 	}
-	client, err := ctx.Spotify()
+	client, cmdCtx, err := spotifyClient(ctx)
 	if err != nil {
 		return err
 	}
-	if err := client.LibraryModify(context.Background(), "/me/tracks", ids, "DELETE"); err != nil {
+	if err := client.LibraryModify(cmdCtx, "/me/tracks", ids, "DELETE"); err != nil {
 		return err
 	}
-	return ok(ctx, len(ids))
+	return emitCountStatus(ctx, len(ids), "Updated")
 }
 
 func (cmd *LibraryAlbumsListCmd) Run(ctx *app.Context) error {
-	client, err := ctx.Spotify()
+	client, cmdCtx, err := spotifyClient(ctx)
 	if err != nil {
 		return err
 	}
 	limit := clampLimit(cmd.Limit)
-	items, total, err := client.LibraryAlbums(context.Background(), limit, cmd.Offset)
+	items, total, err := client.LibraryAlbums(cmdCtx, limit, cmd.Offset)
 	if err != nil {
 		return err
 	}
-	plain, human := renderItems(ctx.Output, items)
-	payload := map[string]any{"total": total, "items": items}
-	return ctx.Output.Emit(payload, plain, human)
+	return emitItems(ctx, items, total, nil)
 }
 
 func (cmd *LibraryAlbumsAddCmd) Run(ctx *app.Context) error {
@@ -148,14 +143,14 @@ func (cmd *LibraryAlbumsAddCmd) Run(ctx *app.Context) error {
 	if err != nil {
 		return err
 	}
-	client, err := ctx.Spotify()
+	client, cmdCtx, err := spotifyClient(ctx)
 	if err != nil {
 		return err
 	}
-	if err := client.LibraryModify(context.Background(), "/me/albums", ids, "PUT"); err != nil {
+	if err := client.LibraryModify(cmdCtx, "/me/albums", ids, "PUT"); err != nil {
 		return err
 	}
-	return ok(ctx, len(ids))
+	return emitCountStatus(ctx, len(ids), "Updated")
 }
 
 func (cmd *LibraryAlbumsRemoveCmd) Run(ctx *app.Context) error {
@@ -163,18 +158,18 @@ func (cmd *LibraryAlbumsRemoveCmd) Run(ctx *app.Context) error {
 	if err != nil {
 		return err
 	}
-	client, err := ctx.Spotify()
+	client, cmdCtx, err := spotifyClient(ctx)
 	if err != nil {
 		return err
 	}
-	if err := client.LibraryModify(context.Background(), "/me/albums", ids, "DELETE"); err != nil {
+	if err := client.LibraryModify(cmdCtx, "/me/albums", ids, "DELETE"); err != nil {
 		return err
 	}
-	return ok(ctx, len(ids))
+	return emitCountStatus(ctx, len(ids), "Updated")
 }
 
 func (cmd *LibraryArtistsListCmd) Run(ctx *app.Context) error {
-	client, err := ctx.Spotify()
+	client, cmdCtx, err := spotifyClient(ctx)
 	if err != nil {
 		return err
 	}
@@ -182,7 +177,7 @@ func (cmd *LibraryArtistsListCmd) Run(ctx *app.Context) error {
 		return fmt.Errorf("offset not supported; use --after with an artist id")
 	}
 	limit := clampLimit(cmd.Limit)
-	items, total, next, err := client.FollowedArtists(context.Background(), limit, cmd.After)
+	items, total, next, err := client.FollowedArtists(cmdCtx, limit, cmd.After)
 	if err != nil {
 		return err
 	}
@@ -196,14 +191,14 @@ func (cmd *LibraryArtistsFollowCmd) Run(ctx *app.Context) error {
 	if err != nil {
 		return err
 	}
-	client, err := ctx.Spotify()
+	client, cmdCtx, err := spotifyClient(ctx)
 	if err != nil {
 		return err
 	}
-	if err := client.FollowArtists(context.Background(), ids, "PUT"); err != nil {
+	if err := client.FollowArtists(cmdCtx, ids, "PUT"); err != nil {
 		return err
 	}
-	return ok(ctx, len(ids))
+	return emitCountStatus(ctx, len(ids), "Updated")
 }
 
 func (cmd *LibraryArtistsUnfollowCmd) Run(ctx *app.Context) error {
@@ -211,29 +206,27 @@ func (cmd *LibraryArtistsUnfollowCmd) Run(ctx *app.Context) error {
 	if err != nil {
 		return err
 	}
-	client, err := ctx.Spotify()
+	client, cmdCtx, err := spotifyClient(ctx)
 	if err != nil {
 		return err
 	}
-	if err := client.FollowArtists(context.Background(), ids, "DELETE"); err != nil {
+	if err := client.FollowArtists(cmdCtx, ids, "DELETE"); err != nil {
 		return err
 	}
-	return ok(ctx, len(ids))
+	return emitCountStatus(ctx, len(ids), "Updated")
 }
 
 func (cmd *LibraryPlaylistsListCmd) Run(ctx *app.Context) error {
-	client, err := ctx.Spotify()
+	client, cmdCtx, err := spotifyClient(ctx)
 	if err != nil {
 		return err
 	}
 	limit := clampLimit(cmd.Limit)
-	items, total, err := client.Playlists(context.Background(), limit, cmd.Offset)
+	items, total, err := client.Playlists(cmdCtx, limit, cmd.Offset)
 	if err != nil {
 		return err
 	}
-	plain, human := renderItems(ctx.Output, items)
-	payload := map[string]any{"total": total, "items": items}
-	return ctx.Output.Emit(payload, plain, human)
+	return emitItems(ctx, items, total, nil)
 }
 
 func parseIDs(inputs []string, kind string) ([]string, error) {
@@ -246,11 +239,4 @@ func parseIDs(inputs []string, kind string) ([]string, error) {
 		ids = append(ids, res.ID)
 	}
 	return ids, nil
-}
-
-func ok(ctx *app.Context, count int) error {
-	payload := map[string]any{"status": "ok", "count": count}
-	plain := []string{"ok"}
-	human := []string{fmt.Sprintf("Updated %d items", count)}
-	return ctx.Output.Emit(payload, plain, human)
 }

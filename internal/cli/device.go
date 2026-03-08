@@ -1,7 +1,6 @@
 package cli
 
 import (
-	"context"
 	"fmt"
 	"strings"
 
@@ -20,11 +19,11 @@ type DeviceSetCmd struct {
 }
 
 func (cmd *DeviceListCmd) Run(ctx *app.Context) error {
-	client, err := ctx.Spotify()
+	client, cmdCtx, err := spotifyClient(ctx)
 	if err != nil {
 		return err
 	}
-	devices, err := client.Devices(context.Background())
+	devices, err := client.Devices(cmdCtx)
 	if err != nil {
 		return err
 	}
@@ -42,11 +41,11 @@ func (cmd *DeviceListCmd) Run(ctx *app.Context) error {
 }
 
 func (cmd *DeviceSetCmd) Run(ctx *app.Context) error {
-	client, err := ctx.Spotify()
+	client, cmdCtx, err := spotifyClient(ctx)
 	if err != nil {
 		return err
 	}
-	devices, err := client.Devices(context.Background())
+	devices, err := client.Devices(cmdCtx)
 	if err != nil {
 		return err
 	}
@@ -57,10 +56,10 @@ func (cmd *DeviceSetCmd) Run(ctx *app.Context) error {
 			break
 		}
 	}
-	if err := client.Transfer(context.Background(), id); err != nil {
+	if err := client.Transfer(cmdCtx, id); err != nil {
 		return err
 	}
-	return ctx.Output.Emit(map[string]any{"status": "ok", "device": id}, []string{"ok"}, []string{fmt.Sprintf("Switched to %s", id)})
+	return emitOK(ctx, map[string]any{"status": "ok", "device": id}, fmt.Sprintf("Switched to %s", id))
 }
 
 func activeMarker(active bool) string {

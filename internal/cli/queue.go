@@ -1,7 +1,6 @@
 package cli
 
 import (
-	"context"
 	"fmt"
 
 	"github.com/steipete/spogo/internal/app"
@@ -24,7 +23,7 @@ type QueueShowCmd struct{}
 type QueueClearCmd struct{}
 
 func (cmd *QueueAddCmd) Run(ctx *app.Context) error {
-	client, err := ctx.Spotify()
+	client, cmdCtx, err := spotifyClient(ctx)
 	if err != nil {
 		return err
 	}
@@ -35,18 +34,18 @@ func (cmd *QueueAddCmd) Run(ctx *app.Context) error {
 	if res.URI == "" {
 		return fmt.Errorf("invalid track")
 	}
-	if err := client.QueueAdd(context.Background(), res.URI); err != nil {
+	if err := client.QueueAdd(cmdCtx, res.URI); err != nil {
 		return err
 	}
-	return ctx.Output.Emit(map[string]string{"status": "ok"}, []string{"ok"}, []string{"Queued"})
+	return emitOK(ctx, nil, "Queued")
 }
 
 func (cmd *QueueShowCmd) Run(ctx *app.Context) error {
-	client, err := ctx.Spotify()
+	client, cmdCtx, err := spotifyClient(ctx)
 	if err != nil {
 		return err
 	}
-	queue, err := client.Queue(context.Background())
+	queue, err := client.Queue(cmdCtx)
 	if err != nil {
 		return err
 	}

@@ -52,97 +52,37 @@ type InfoShowCmd struct{ InfoArgs }
 type InfoEpisodeCmd struct{ InfoArgs }
 
 func (cmd *InfoTrackCmd) Run(ctx *app.Context) error {
-	client, err := ctx.Spotify()
-	if err != nil {
-		return err
-	}
-	res, err := spotify.ParseTypedID(cmd.ID, "track")
-	if err != nil {
-		return err
-	}
-	item, err := client.GetTrack(context.Background(), res.ID)
-	if err != nil {
-		return err
-	}
-	return ctx.Output.Emit(item, []string{itemPlain(item)}, []string{itemHuman(ctx.Output, item)})
+	return runInfoLookup(ctx, cmd.ID, "track", func(cmdCtx context.Context, client spotify.API, id string) (spotify.Item, error) {
+		return client.GetTrack(cmdCtx, id)
+	})
 }
 
 func (cmd *InfoAlbumCmd) Run(ctx *app.Context) error {
-	client, err := ctx.Spotify()
-	if err != nil {
-		return err
-	}
-	res, err := spotify.ParseTypedID(cmd.ID, "album")
-	if err != nil {
-		return err
-	}
-	item, err := client.GetAlbum(context.Background(), res.ID)
-	if err != nil {
-		return err
-	}
-	return ctx.Output.Emit(item, []string{itemPlain(item)}, []string{itemHuman(ctx.Output, item)})
+	return runInfoLookup(ctx, cmd.ID, "album", func(cmdCtx context.Context, client spotify.API, id string) (spotify.Item, error) {
+		return client.GetAlbum(cmdCtx, id)
+	})
 }
 
 func (cmd *InfoArtistCmd) Run(ctx *app.Context) error {
-	client, err := ctx.Spotify()
-	if err != nil {
-		return err
-	}
-	res, err := spotify.ParseTypedID(cmd.ID, "artist")
-	if err != nil {
-		return err
-	}
-	item, err := client.GetArtist(context.Background(), res.ID)
-	if err != nil {
-		return err
-	}
-	return ctx.Output.Emit(item, []string{itemPlain(item)}, []string{itemHuman(ctx.Output, item)})
+	return runInfoLookup(ctx, cmd.ID, "artist", func(cmdCtx context.Context, client spotify.API, id string) (spotify.Item, error) {
+		return client.GetArtist(cmdCtx, id)
+	})
 }
 
 func (cmd *InfoPlaylistCmd) Run(ctx *app.Context) error {
-	client, err := ctx.Spotify()
-	if err != nil {
-		return err
-	}
-	res, err := spotify.ParseTypedID(cmd.ID, "playlist")
-	if err != nil {
-		return err
-	}
-	item, err := client.GetPlaylist(context.Background(), res.ID)
-	if err != nil {
-		return err
-	}
-	return ctx.Output.Emit(item, []string{itemPlain(item)}, []string{itemHuman(ctx.Output, item)})
+	return runInfoLookup(ctx, cmd.ID, "playlist", func(cmdCtx context.Context, client spotify.API, id string) (spotify.Item, error) {
+		return client.GetPlaylist(cmdCtx, id)
+	})
 }
 
 func (cmd *InfoShowCmd) Run(ctx *app.Context) error {
-	client, err := ctx.Spotify()
-	if err != nil {
-		return err
-	}
-	res, err := spotify.ParseTypedID(cmd.ID, "show")
-	if err != nil {
-		return err
-	}
-	item, err := client.GetShow(context.Background(), res.ID)
-	if err != nil {
-		return err
-	}
-	return ctx.Output.Emit(item, []string{itemPlain(item)}, []string{itemHuman(ctx.Output, item)})
+	return runInfoLookup(ctx, cmd.ID, "show", func(cmdCtx context.Context, client spotify.API, id string) (spotify.Item, error) {
+		return client.GetShow(cmdCtx, id)
+	})
 }
 
 func (cmd *InfoEpisodeCmd) Run(ctx *app.Context) error {
-	client, err := ctx.Spotify()
-	if err != nil {
-		return err
-	}
-	res, err := spotify.ParseTypedID(cmd.ID, "episode")
-	if err != nil {
-		return err
-	}
-	item, err := client.GetEpisode(context.Background(), res.ID)
-	if err != nil {
-		return err
-	}
-	return ctx.Output.Emit(item, []string{itemPlain(item)}, []string{itemHuman(ctx.Output, item)})
+	return runInfoLookup(ctx, cmd.ID, "episode", func(cmdCtx context.Context, client spotify.API, id string) (spotify.Item, error) {
+		return client.GetEpisode(cmdCtx, id)
+	})
 }

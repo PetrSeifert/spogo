@@ -6,8 +6,16 @@ import (
 	"testing"
 )
 
+func isolateConfigHome(t *testing.T) string {
+	t.Helper()
+	dir := t.TempDir()
+	t.Setenv("XDG_CONFIG_HOME", dir)
+	t.Setenv("HOME", dir)
+	return dir
+}
+
 func TestLoadDefaultWhenMissing(t *testing.T) {
-	t.Setenv("XDG_CONFIG_HOME", t.TempDir())
+	isolateConfigHome(t)
 	cfg, err := Load("")
 	if err != nil {
 		t.Fatalf("load default: %v", err)
@@ -18,8 +26,7 @@ func TestLoadDefaultWhenMissing(t *testing.T) {
 }
 
 func TestDefaultPath(t *testing.T) {
-	base := t.TempDir()
-	t.Setenv("XDG_CONFIG_HOME", base)
+	isolateConfigHome(t)
 	path, err := DefaultPath()
 	if err != nil {
 		t.Fatalf("default path: %v", err)
@@ -89,7 +96,7 @@ func TestSaveNilConfig(t *testing.T) {
 }
 
 func TestSaveDefaultPath(t *testing.T) {
-	t.Setenv("XDG_CONFIG_HOME", t.TempDir())
+	isolateConfigHome(t)
 	cfg := Default()
 	if err := Save("", cfg); err != nil {
 		t.Fatalf("save: %v", err)
