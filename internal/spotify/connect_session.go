@@ -112,7 +112,7 @@ func (s *connectSession) ensureAppConfigLocked(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
-	req.Header.Set("User-Agent", defaultUserAgent())
+	applyRequestHeaders(req, requestHeaders{})
 	client := *s.client
 	client.Jar = jar
 	resp, err := client.Do(req)
@@ -190,9 +190,10 @@ func (s *connectSession) ensureClientTokenLocked(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
-	req.Header.Set("Content-Type", "application/json")
-	req.Header.Set("Accept", "application/json")
-	req.Header.Set("User-Agent", defaultUserAgent())
+	applyRequestHeaders(req, requestHeaders{
+		ContentType: "application/json",
+		Accept:      "application/json",
+	})
 	resp, err := s.client.Do(req)
 	if err != nil {
 		return err

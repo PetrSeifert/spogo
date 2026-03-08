@@ -81,9 +81,11 @@ func (p CookieTokenProvider) Token(ctx context.Context) (Token, error) {
 	if err != nil {
 		return Token{}, err
 	}
-	req.Header.Set("User-Agent", defaultUserAgent())
-	req.Header.Set("Accept", "application/json")
-	req.Header.Set("Accept-Language", "en-US,en;q=0.9")
+	applyRequestHeaders(req, requestHeaders{
+		Accept:      "application/json",
+		Language:    "en-US,en;q=0.9",
+		AppPlatform: defaultSpotifyAppPlatform,
+	})
 	req.Header.Set("Origin", "https://open.spotify.com")
 	req.Header.Set("Referer", "https://open.spotify.com/")
 	req.Header.Set("Sec-Fetch-Site", "same-origin")
@@ -92,7 +94,6 @@ func (p CookieTokenProvider) Token(ctx context.Context) (Token, error) {
 	req.Header.Set("Sec-CH-UA", "\"Chromium\";v=\"131\", \"Not_A Brand\";v=\"24\", \"Google Chrome\";v=\"131\"")
 	req.Header.Set("Sec-CH-UA-Platform", "\"macOS\"")
 	req.Header.Set("Sec-CH-UA-Mobile", "?0")
-	req.Header.Set("app-platform", "WebPlayer")
 	resp, err := client.Do(req)
 	if err != nil {
 		return Token{}, err

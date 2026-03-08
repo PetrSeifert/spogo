@@ -125,7 +125,7 @@ func (h *hashResolver) fetchWebPlayerHTML(ctx context.Context) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	req.Header.Set("User-Agent", defaultUserAgent())
+	applyRequestHeaders(req, requestHeaders{})
 	resp, err := h.client.Do(req)
 	if err != nil {
 		return "", err
@@ -146,7 +146,7 @@ func (h *hashResolver) fetchText(ctx context.Context, url string) (string, error
 	if err != nil {
 		return "", err
 	}
-	req.Header.Set("User-Agent", defaultUserAgent())
+	applyRequestHeaders(req, requestHeaders{})
 	resp, err := h.client.Do(req)
 	if err != nil {
 		return "", err

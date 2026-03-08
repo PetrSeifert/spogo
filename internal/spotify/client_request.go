@@ -76,16 +76,19 @@ func (c *Client) send(ctx context.Context, method, path string, params url.Value
 		if err != nil {
 			return err
 		}
-		if payload != nil {
-			req.Header.Set("Content-Type", "application/json")
-		}
 		token, err := c.token(ctx)
 		if err != nil {
 			return err
 		}
-		req.Header.Set("Authorization", "Bearer "+token)
-		req.Header.Set("Accept", "application/json")
-		req.Header.Set("User-Agent", defaultUserAgent())
+		contentType := ""
+		if payload != nil {
+			contentType = "application/json"
+		}
+		applyRequestHeaders(req, requestHeaders{
+			AccessToken: token,
+			Accept:      "application/json",
+			ContentType: contentType,
+		})
 		resp, err := c.client.Do(req)
 		if err != nil {
 			return err

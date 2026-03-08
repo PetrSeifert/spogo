@@ -45,15 +45,14 @@ func (c *ConnectClient) graphQL(ctx context.Context, operation string, variables
 	if err != nil {
 		return nil, err
 	}
-	req.Header.Set("Authorization", "Bearer "+auth.AccessToken)
-	req.Header.Set("Client-Token", auth.ClientToken)
-	req.Header.Set("Spotify-App-Version", auth.ClientVersion)
-	req.Header.Set("Accept", "application/json")
-	req.Header.Set("User-Agent", defaultUserAgent())
-	if c.language != "" {
-		req.Header.Set("Accept-Language", c.language)
-	}
-	req.Header.Set("app-platform", "WebPlayer")
+	applyRequestHeaders(req, requestHeaders{
+		AccessToken:   auth.AccessToken,
+		ClientToken:   auth.ClientToken,
+		ClientVersion: auth.ClientVersion,
+		Accept:        "application/json",
+		Language:      c.language,
+		AppPlatform:   defaultSpotifyAppPlatform,
+	})
 	client := c.searchClient
 	if client == nil {
 		client = c.client
@@ -268,15 +267,14 @@ func (c *ConnectClient) searchViaWebAPI(ctx context.Context, kind, query string,
 	if err != nil {
 		return SearchResult{}, err
 	}
-	req.Header.Set("Authorization", "Bearer "+auth.AccessToken)
-	req.Header.Set("Client-Token", auth.ClientToken)
-	req.Header.Set("Spotify-App-Version", auth.ClientVersion)
-	req.Header.Set("Accept", "application/json")
-	req.Header.Set("User-Agent", defaultUserAgent())
-	req.Header.Set("app-platform", "WebPlayer")
-	if c.language != "" {
-		req.Header.Set("Accept-Language", c.language)
-	}
+	applyRequestHeaders(req, requestHeaders{
+		AccessToken:   auth.AccessToken,
+		ClientToken:   auth.ClientToken,
+		ClientVersion: auth.ClientVersion,
+		Accept:        "application/json",
+		Language:      c.language,
+		AppPlatform:   defaultSpotifyAppPlatform,
+	})
 	resp, err := c.client.Do(req)
 	if err != nil {
 		return SearchResult{}, err
